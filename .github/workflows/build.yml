@@ -4,8 +4,6 @@
 name: Go
 
 on:
-  push:
-    tags: [ "*" ]
   release:
     types: [published]
 
