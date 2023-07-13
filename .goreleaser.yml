@@ -32,5 +32,4 @@ release:
   # If set to true, will mark the release as not ready for production.
   prerelease: auto
   draft: true
-  changelog: false
   name_template: "{{ .Tag }}"
