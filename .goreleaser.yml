@@ -20,7 +20,7 @@ archives:
 checksum:
   name_template: 'SHA256SUMS'
   algorithm: sha256
-
+changelog: ""
 
 release:
   github:
