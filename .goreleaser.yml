@@ -20,7 +20,7 @@ archives:
 checksum:
   name_template: 'SHA256SUMS'
   algorithm: sha256
-changelog: ""
+ 
 
 release:
   github:
@@ -32,4 +32,5 @@ release:
   # If set to true, will mark the release as not ready for production.
   prerelease: auto
   draft: true
+  changelog: false
   name_template: "{{ .Tag }}"
