@@ -178,9 +178,11 @@ func main() {
 				panic(fmt.Sprintf("unable to daemonize: %v", err))
 			}
 
+			fmt.Fprintf(os.Stderr, "%d InitLoggers()...\n", os.Getpid())
 			InitLoggers(!flags.Foreground && child == nil)
 
 			if child != nil {
+				fmt.Fprintf(os.Stderr, "%d wg.Wait()...\n", os.Getpid())
 				// attempt to wait for child to notify parent
 				wg.Wait()
 				if waitedForSignal == syscall.SIGHUP {
@@ -189,6 +191,7 @@ func main() {
 					return fuse.EINVAL
 				}
 			} else {
+				fmt.Fprintf(os.Stderr, "%d send SIGHUP to self...\n", os.Getpid())
 				// kill our own waiting goroutine
 				kill(os.Getpid(), syscall.SIGHUP)
 				wg.Wait()
@@ -215,6 +218,7 @@ func main() {
 			// fatal also terminates itself
 		} else {
 			if !flags.Foreground {
+				fmt.Fprintf(os.Stderr, "%d send SIGHUP to parent(%d)...\n", os.Getpid(), os.Getppid())
 				kill(os.Getppid(), syscall.SIGHUP)
 			}
 			log.Println("File system has been successfully mounted.")
