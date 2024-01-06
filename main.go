@@ -41,13 +41,13 @@ var log = GetLogger("main")
 func registerSIGINTHandler(fs *Goofys, flags *FlagStorage) {
 	// Register for SIGINT.
 	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
+	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM, syscall.SIGUSR2)
 
 	// Start a goroutine that will unmount when the signal is received.
 	go func() {
 		for {
 			s := <-signalChan
-			if s == syscall.SIGHUP {
+			if s == syscall.SIGUSR2 {
 				log.Infof("Received %v", s)
 				fs.SigUsr1()
 				continue
@@ -76,7 +76,7 @@ var waitedForSignal os.Signal
 
 func waitForSignal(wg *sync.WaitGroup) {
 	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, syscall.SIGHUP, syscall.SIGUSR2)
+	signal.Notify(signalChan, syscall.SIGUSR2)
 
 	wg.Add(1)
 	go func() {
@@ -185,15 +185,15 @@ func main() {
 				fmt.Fprintf(os.Stderr, "%d wg.Wait()...\n", os.Getpid())
 				// attempt to wait for child to notify parent
 				wg.Wait()
-				if waitedForSignal == syscall.SIGHUP {
+				if waitedForSignal == syscall.SIGUSR2 {
 					return
 				} else {
 					return fuse.EINVAL
 				}
 			} else {
-				log.Printf("%d send SIGHUP to self...\n", os.Getpid())
+				log.Printf("%d send SIGUSR2 to self...\n", os.Getpid())
 				// kill our own waiting goroutine
-				kill(os.Getpid(), syscall.SIGHUP)
+				kill(os.Getpid(), syscall.SIGUSR2)
 				wg.Wait()
 				defer ctx.Release()
 				log.Printf("%d after defer ctx.Release()\n", os.Getpid())
@@ -220,8 +220,8 @@ func main() {
 			// fatal also terminates itself
 		} else {
 			if !flags.Foreground {
-				fmt.Fprintf(os.Stderr, "%d send SIGHUP to parent(%d)...\n", os.Getpid(), os.Getppid())
-				kill(os.Getppid(), syscall.SIGHUP)
+				fmt.Fprintf(os.Stderr, "%d send SIGUSR2 to parent(%d)...\n", os.Getpid(), os.Getppid())
+				kill(os.Getppid(), syscall.SIGUSR2)
 			}
 			log.Println("File system has been successfully mounted.")
 			// Let the user unmount with Ctrl-C
