@@ -37,7 +37,6 @@ import (
 )
 
 var log = GetLogger("main")
-var SIGRTMIN = 34
 
 func registerSIGINTHandler(fs *Goofys, flags *FlagStorage) {
 	// Register for SIGINT.
@@ -166,7 +165,9 @@ func main() {
 
 		if !flags.Foreground {
 			var wg sync.WaitGroup
+			fmt.Fprintf(os.Stderr, "%d waitForSignal...\n", os.Getpid())
 			waitForSignal(&wg)
+			fmt.Fprintf(os.Stderr, "%d waitForSignal...done\n", os.Getpid())
 
 			massageArg0()
 
