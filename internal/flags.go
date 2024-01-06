@@ -208,6 +208,11 @@ func NewApp() (app *cli.App) {
 			},
 
 			cli.BoolFlag{
+				Name:  "autofs",
+				Usage: "goofys is used with autofs",
+			},
+
+			cli.BoolFlag{
 				Name:  "subdomain",
 				Usage: "Enable subdomain mode of S3",
 			},
@@ -337,6 +342,8 @@ func PopulateFlags(c *cli.Context) (ret *FlagStorage) {
 		// Common Backend Config
 		Endpoint:       c.String("endpoint"),
 		UseContentType: c.Bool("use-content-type"),
+
+		Autofs: c.Bool("autofs"),
 
 		// Debugging,
 		DebugFuse:  c.Bool("debug_fuse"),

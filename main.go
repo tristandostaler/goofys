@@ -197,6 +197,10 @@ func main() {
 				wg.Wait()
 				defer ctx.Release()
 				log.Printf("%d after defer ctx.Release()\n", os.Getpid())
+				if flags.Autofs {
+					log.Printf("%d send SIGUSR2 to parent %d\n", os.Getpid(), os.Getppid())
+					kill(os.Getppid(), syscall.SIGUSR2)
+				}
 			}
 
 		} else {
@@ -213,13 +217,13 @@ func main() {
 			flags)
 
 		if err != nil {
-			if !flags.Foreground {
+			if !flags.Foreground && !flags.Autofs {
 				kill(os.Getppid(), syscall.SIGUSR2)
 			}
 			log.Fatalf("Mounting file system: %v", err)
 			// fatal also terminates itself
 		} else {
-			if !flags.Foreground {
+			if !flags.Foreground && !flags.Autofs {
 				fmt.Fprintf(os.Stderr, "%d send SIGUSR2 to parent(%d)...\n", os.Getpid(), os.Getppid())
 				kill(os.Getppid(), syscall.SIGUSR2)
 			}
