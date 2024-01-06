@@ -191,17 +191,19 @@ func main() {
 					return fuse.EINVAL
 				}
 			} else {
-				fmt.Fprintf(os.Stderr, "%d send SIGHUP to self...\n", os.Getpid())
+				log.Printf("%d send SIGHUP to self...\n", os.Getpid())
 				// kill our own waiting goroutine
 				kill(os.Getpid(), syscall.SIGHUP)
 				wg.Wait()
 				defer ctx.Release()
+				log.Printf("%d after defer ctx.Release()\n", os.Getpid())
 			}
 
 		} else {
 			InitLoggers(!flags.Foreground)
 		}
 
+		log.Printf("%d start mount\n", os.Getpid())
 		// Mount the file system.
 		var mfs *fuse.MountedFileSystem
 		var fs *Goofys
