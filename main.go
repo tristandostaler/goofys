@@ -196,6 +196,7 @@ func main() {
 				kill(os.Getpid(), syscall.SIGUSR2)
 				wg.Wait()
 				defer ctx.Release()
+
 				log.Printf("%d after defer ctx.Release()\n", os.Getpid())
 				if flags.Autofs {
 					log.Printf("%d send SIGUSR2 to parent %d\n", os.Getpid(), os.Getppid())
