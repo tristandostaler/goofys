@@ -26,7 +26,7 @@ checksum:
 
 release:
   github:
-    owner: andsky
+    owner: tristandostaler
     name: goofys
 
   # If set to auto, will mark the release as not ready for production
