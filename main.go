@@ -26,7 +26,6 @@ import (
 	"strings"
 	"sync"
 	"syscall"
-	"time"
 
 	"context"
 
@@ -42,13 +41,13 @@ var log = GetLogger("main")
 func registerSIGINTHandler(fs *Goofys, flags *FlagStorage) {
 	// Register for SIGINT.
 	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM, syscall.SIGUSR1)
+	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM, syscall.SIGUSR2)
 
 	// Start a goroutine that will unmount when the signal is received.
 	go func() {
 		for {
 			s := <-signalChan
-			if s == syscall.SIGUSR1 {
+			if s == syscall.SIGUSR2 {
 				log.Infof("Received %v", s)
 				fs.SigUsr1()
 				continue
@@ -77,7 +76,7 @@ var waitedForSignal os.Signal
 
 func waitForSignal(wg *sync.WaitGroup) {
 	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, syscall.SIGUSR1, syscall.SIGUSR2)
+	signal.Notify(signalChan, syscall.SIGUSR2)
 
 	wg.Add(1)
 	go func() {
@@ -163,14 +162,12 @@ func main() {
 			err = fmt.Errorf("invalid arguments")
 			return
 		}
-		defer func() {
-			time.Sleep(time.Second)
-			flags.Cleanup()
-		}()
 
 		if !flags.Foreground {
 			var wg sync.WaitGroup
+			fmt.Fprintf(os.Stderr, "%d waitForSignal...\n", os.Getpid())
 			waitForSignal(&wg)
+			fmt.Fprintf(os.Stderr, "%d waitForSignal...done\n", os.Getpid())
 
 			massageArg0()
 
@@ -181,30 +178,37 @@ func main() {
 				panic(fmt.Sprintf("unable to daemonize: %v", err))
 			}
 
+			fmt.Fprintf(os.Stderr, "%d InitLoggers()...\n", os.Getpid())
 			InitLoggers(!flags.Foreground && child == nil)
 
 			if child != nil {
+				fmt.Fprintf(os.Stderr, "%d wg.Wait()...\n", os.Getpid())
 				// attempt to wait for child to notify parent
 				wg.Wait()
-				if waitedForSignal == syscall.SIGUSR1 {
+				if waitedForSignal == syscall.SIGUSR2 {
 					return
 				} else {
 					return fuse.EINVAL
 				}
 			} else {
+				log.Printf("%d send SIGUSR2 to self...\n", os.Getpid())
 				// kill our own waiting goroutine
-				kill(os.Getpid(), syscall.SIGUSR1)
+				kill(os.Getpid(), syscall.SIGUSR2)
 				wg.Wait()
 				defer ctx.Release()
 
-				// Signal parent process since we are taking over
-				_ = kill(os.Getppid(), syscall.SIGUSR1)
+				log.Printf("%d after defer ctx.Release()\n", os.Getpid())
+				if flags.Autofs {
+					log.Printf("%d send SIGUSR2 to parent %d\n", os.Getpid(), os.Getppid())
+					kill(os.Getppid(), syscall.SIGUSR2)
+				}
 			}
 
 		} else {
 			InitLoggers(!flags.Foreground)
 		}
 
+		log.Printf("%d start mount\n", os.Getpid())
 		// Mount the file system.
 		var mfs *fuse.MountedFileSystem
 		var fs *Goofys
@@ -214,9 +218,16 @@ func main() {
 			flags)
 
 		if err != nil {
+			if !flags.Foreground && !flags.Autofs {
+				kill(os.Getppid(), syscall.SIGUSR2)
+			}
 			log.Fatalf("Mounting file system: %v", err)
 			// fatal also terminates itself
 		} else {
+			if !flags.Foreground && !flags.Autofs {
+				fmt.Fprintf(os.Stderr, "%d send SIGUSR2 to parent(%d)...\n", os.Getpid(), os.Getppid())
+				kill(os.Getppid(), syscall.SIGUSR2)
+			}
 			log.Println("File system has been successfully mounted.")
 			// Let the user unmount with Ctrl-C
 			// (SIGINT). But if cache is on, catfs will

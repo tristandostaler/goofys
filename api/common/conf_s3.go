@@ -70,7 +70,10 @@ func (c *S3Config) Init() *S3Config {
 }
 
 func (c *S3Config) ToAwsConfig(flags *FlagStorage) (*aws.Config, error) {
+	trueObj := new(bool)
+	*trueObj = true
 	awsConfig := (&aws.Config{
+		DisableComputeChecksums: trueObj,
 		Region: &c.Region,
 		Logger: GetLogger("s3"),
 	}).WithHTTPClient(&http.Client{
